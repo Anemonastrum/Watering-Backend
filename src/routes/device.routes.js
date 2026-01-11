@@ -1,21 +1,11 @@
-import { Router } from "express";
-import {
-  createDevice,
-  getDevices,
-  getDevice,
-  updateDevice,
-  deleteDevice
-} from "../controllers/device.controller.js";
-import { protect } from "../middlewares/auth.middleware.js";
+import express from "express";
+import { authMiddleware } from "../middleware/auth.middleware.js";
+import { updateConfig, controlPump } from "../controllers/device.controller.js";
 
-const router = Router();
+const router = express.Router();
 
-router.use(protect);
-
-router.post("/", createDevice);
-router.get("/", getDevices);
-router.get("/:id", getDevice);
-router.put("/:id", updateDevice);
-router.delete("/:id", deleteDevice);
-
-export default router;
+export default (mqttClient) => {
+  router.post("/config", authMiddleware, updateConfig(mqttClient));
+  router.post("/pump", authMiddleware, controlPump(mqttClient));
+  return router;
+};

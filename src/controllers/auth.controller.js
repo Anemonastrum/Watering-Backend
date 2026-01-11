@@ -1,48 +1,34 @@
+import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
-import { signToken } from "../utils/jwt.js";
-
-export const register = async (req, res) => {
-  const { name, email, password } = req.body;
-
-  const exists = await User.findOne({ email });
-  if (exists) {
-    return res.status(400).json({ message: "Email already registered" });
-  }
-
-  const hashed = await bcrypt.hash(password, 10);
-  await User.create({ name, email, password: hashed });
-
-  res.status(201).json({ message: "User registered" });
-};
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email }).select("+password");
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  const user = await User.findOne({ email });
+  if (!user) return res.sendStatus(401);
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.sendStatus(401);
+
+  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+  res.json({ token });
+};
+
+export const register = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "Email and password required" });
   }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  const exists = await User.findOne({ email });
+  if (exists) {
+    return res.status(409).json({ message: "Email already registered" });
   }
 
-  const token = signToken({ id: user._id, role: user.role });
+  await User.create({ email, password });
 
-  res
-    .cookie("token", token, {
-      httpOnly: true,
-      sameSite: "lax"
-    })
-    .json({ message: "Logged in" });
+  res.status(201).json({ message: "User registered successfully" });
 };
 
-export const me = async (req, res) => {
-  res.json(req.user);
-};
-
-export const logout = async (req, res) => {
-  res.clearCookie("token").json({ message: "Logged out" });
-};
