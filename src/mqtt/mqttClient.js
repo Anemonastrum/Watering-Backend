@@ -3,6 +3,8 @@ import Telemetry from "../models/Telemetry.js";
 import Alert from "../models/Alert.js";
 import { io } from "../server.js";
 import PumpDailyStat from "../models/PumpDailyStat.js";
+import { currentConfig } from "../state/currentConfig.js";
+
 
 let lastPumpRunning = false;
 
@@ -36,15 +38,29 @@ mqttClient.on("message", async (topic, msg) => {
 
         if (data.water_level < 500) {
             emitAlert("LOW_WATER", "Water level low", "critical");
+        } else {
+            resolveAlert("LOW_WATER");
+        }
+
+    }
+
+    if (topic.endsWith("/status")) {
+        if (data.online === false) {
+            emitAlert("DEVICE_OFFLINE", "ESP32 offline", "critical");
+        } else {
+            resolveAlert("DEVICE_OFFLINE");
         }
     }
 
-    if (topic.endsWith("/status") && data.online === false) {
-        emitAlert("DEVICE_OFFLINE", "ESP32 offline", "critical");
-    }
 
     if (topic.endsWith("/config/state")) {
         io.emit("config", data);
+
+        if (topic.endsWith("/config/state")) {
+            Object.assign(currentConfig, data);
+            io.emit("config", currentConfig);
+        }
+
 
         const now = new Date();
         const day = new Date(now.setHours(0, 0, 0, 0));
@@ -74,6 +90,31 @@ mqttClient.on("message", async (topic, msg) => {
 });
 
 async function emitAlert(type, message, level) {
+    const existing = await Alert.findOne({
+        type,
+        status: "active"
+    });
+
+    if (existing) return;
+
     const alert = await Alert.create({ type, message, level });
     io.emit("alert", alert);
+}
+
+async function resolveAlert(type) {
+    const alert = await Alert.findOne({
+        type,
+        status: "active"
+    });
+
+    if (!alert) return;
+
+    alert.status = "resolved";
+    alert.resolvedAt = new Date();
+    await alert.save();
+
+    io.emit("alertResolved", {
+        type,
+        resolvedAt: alert.resolvedAt
+    });
 }

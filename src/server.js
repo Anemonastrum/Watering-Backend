@@ -4,6 +4,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
+import { currentConfig } from "./state/currentConfig.js";
+
 
 import "./mqtt/mqttClient.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -28,6 +30,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 io.use(verifySocketToken);
 io.on("connection", socket => {
+    socket.emit("config", currentConfig);
   console.log("WebSocket client connected:", socket.userId);
 });
 

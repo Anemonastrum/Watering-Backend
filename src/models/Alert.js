@@ -1,7 +1,18 @@
 import mongoose from "mongoose";
-export default mongoose.model("Alert", new mongoose.Schema({
+
+const AlertSchema = new mongoose.Schema({
   type: String,
   message: String,
-  level: String,
-  createdAt: { type: Date, default: Date.now }
-}));
+  level: { type: String, enum: ["info", "warning", "critical"] },
+
+  status: {
+    type: String,
+    enum: ["active", "resolved"],
+    default: "active"
+  },
+
+  createdAt: { type: Date, default: Date.now },
+  resolvedAt: Date
+});
+
+export default mongoose.model("Alert", AlertSchema);

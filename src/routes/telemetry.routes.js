@@ -1,5 +1,13 @@
 import express from "express";
 import Telemetry from "../models/Telemetry.js";
+import PumpDailyStat from "../models/PumpDailyStat.js";
+import {
+  getPumpDaily,
+  getAlerts,
+  getHourlyStats,
+  getDailyStats
+} from "../controllers/telemetry.controller.js";
+import { auth } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -11,8 +19,6 @@ router.get("/history", async (_, res) => {
   res.json(await Telemetry.find().sort({ createdAt: -1 }).limit(500));
 });
 
-import PumpDailyStat from "../models/PumpDailyStat.js";
-
 router.get("/pump/daily", async (_, res) => {
   const stats = await PumpDailyStat
     .find()
@@ -21,5 +27,10 @@ router.get("/pump/daily", async (_, res) => {
 
   res.json(stats);
 });
+
+router.get("/pump/daily", auth, getPumpDaily);
+router.get("/alerts", auth, getAlerts);
+router.get("/hourly", auth, getHourlyStats);
+router.get("/daily", auth, getDailyStats);
 
 export default router;
