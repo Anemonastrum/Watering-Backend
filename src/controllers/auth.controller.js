@@ -17,18 +17,10 @@ export const login = async (req, res) => {
 
 export const register = async (req, res) => {
   const { email, password } = req.body;
+  if (!email || !password) return res.sendStatus(400);
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password required" });
-  }
-
-  const exists = await User.findOne({ email });
-  if (exists) {
-    return res.status(409).json({ message: "Email already registered" });
-  }
+  if (await User.findOne({ email })) return res.sendStatus(409);
 
   await User.create({ email, password });
-
-  res.status(201).json({ message: "User registered successfully" });
+  res.sendStatus(201);
 };
-

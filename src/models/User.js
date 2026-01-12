@@ -2,18 +2,9 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
 const UserSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-    lowercase: true
-  },
-  password: {
-    type: String,
-    required: true
-  }
+  email: String,
+  password: String
 });
-
 
 UserSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, 10);

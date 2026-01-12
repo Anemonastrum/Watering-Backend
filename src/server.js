@@ -2,37 +2,39 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 import { Server } from "socket.io";
 
-import connectMongoDB from "./configs/mongodb.js";
-import mqttClient from "./mqtt/client.js";
-import deviceRoutes from "./routes/device.routes.js";
+import "./mqtt/mqttClient.js";
 import authRoutes from "./routes/auth.routes.js";
+import telemetryRoutes from "./routes/telemetry.routes.js";
+import controlRoutes from "./routes/control.routes.js";
+import { verifySocketToken } from "./middlewares/socketAuth.js";
 
 dotenv.config();
-await connectMongoDB();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
+
+export const io = new Server(server, {
   cors: { origin: "*" }
 });
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/auth", authRoutes);
-app.use("/api/device", deviceRoutes(mqttClient));
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"));
 
-mqttClient.on("message", (topic, payload) => {
-  try {
-    io.emit("mqtt-data", {
-      topic,
-      data: JSON.parse(payload.toString())
-    });
-  } catch {}
+io.use(verifySocketToken);
+io.on("connection", socket => {
+  console.log("WebSocket client connected:", socket.userId);
 });
 
-server.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+app.use("/api/auth", authRoutes);
+app.use("/api/telemetry", telemetryRoutes);
+app.use("/api/control", controlRoutes);
+
+server.listen(3000, () => {
+  console.log("Backend running on port 3000");
 });

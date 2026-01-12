@@ -1,12 +1,8 @@
 import mongoose from "mongoose";
-
-const TelemetrySchema = new mongoose.Schema({
-  deviceId: { type: String, required: true },
+export default mongoose.model("Telemetry", new mongoose.Schema({
   temperature: Number,
   humidity: Number,
-  soil_moisture: Number,
-  water_level: Number,
+  soilMoisture: Number,
+  waterLevel: Number,
   createdAt: { type: Date, default: Date.now }
-});
-
-export default mongoose.model("Telemetry", TelemetrySchema);
+}));

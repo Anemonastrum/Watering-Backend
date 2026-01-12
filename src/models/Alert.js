@@ -1,10 +1,7 @@
 import mongoose from "mongoose";
-
-const AlertSchema = new mongoose.Schema({
-  deviceId: String,
+export default mongoose.model("Alert", new mongoose.Schema({
   type: String,
   message: String,
+  level: String,
   createdAt: { type: Date, default: Date.now }
-});
-
-export default mongoose.model("Alert", AlertSchema);
+}));
